@@ -42,17 +42,17 @@
   (string.trim string *whitespace* *whitespace*))
 
 (define (condense-whitespace string)
-  (let loop ((i 0) (was-white? #f) (acc '()))
+  (let loop ((i 0) (was-white? #f) (chars '()))
     (if (= i (string-length string))
-        (list->string (reverse acc))
+        (list->string (reverse chars))
         (let* ((char (string-ref string i))
                (white? (string.find *whitespace* char)))
           (cond (white?
-                 (loop (+ i 1) #t acc))
-                ((or (not was-white?) (null? acc))
-                 (loop (+ i 1) #f (cons char acc)))
+                 (loop (+ i 1) #t chars))
+                ((or (not was-white?) (null? chars))
+                 (loop (+ i 1) #f (cons char chars)))
                 (else
-                 (loop (+ i 1) #f (cons char (cons #\space acc)))))))))
+                 (loop (+ i 1) #f (cons char (cons #\space chars)))))))))
 
 (define (last-char string)
   (string-ref string (- (string-length string) 1)))
