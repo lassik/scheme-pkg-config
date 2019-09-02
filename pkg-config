@@ -74,8 +74,9 @@
                  (loop (read-line)))
                 ((char=? #\\ (last-char line))
                  (loop (string-append
-                        line " " (let ((line (read-line)))
-                                   (if (eof-object? line) "" line)))))
+                        (substring line 0 (- (string-length line) 1))
+                        " " (let ((line (read-line)))
+                              (if (eof-object? line) "" line)))))
                 ((set! pivot (string.find line #\=))
                  (split-line 'var line pivot))
                 ((set! pivot (string.find line #\:))
