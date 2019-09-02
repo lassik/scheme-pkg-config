@@ -41,14 +41,27 @@
 (define (trim-whitespace string)
   (string.trim string *whitespace* *whitespace*))
 
+(define (condense-whitespace string)
+  (let loop ((i 0) (was-white? #f) (acc '()))
+    (if (= i (string-length string))
+        (list->string (reverse acc))
+        (let* ((char (string-ref string i))
+               (white? (string.find *whitespace* char)))
+          (cond (white?
+                 (loop (+ i 1) #t acc))
+                ((or (not was-white?) (null? acc))
+                 (loop (+ i 1) #f (cons char acc)))
+                (else
+                 (loop (+ i 1) #f (cons char (cons #\space acc)))))))))
+
 (define (last-char string)
   (string-ref string (- (string-length string) 1)))
 
 (define (split-line key line pivot)
   (values
    key
-   (trim-whitespace (substring line 0 pivot))
-   (trim-whitespace (substring line (+ pivot 1) (string-length line)))))
+   (condense-whitespace (substring line 0 pivot))
+   (condense-whitespace (substring line (+ pivot 1) (string-length line)))))
 
 (define (parse-line read-line)
   (let loop ((line (read-line)))
