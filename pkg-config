@@ -1,0 +1,70 @@
+#! /usr/bin/env upscheme
+
+(import (upscheme 2019 unstable))
+
+;;
+
+(define (append-map fn lst)
+  (let loop ((lst lst) (acc '()))
+    (if (null? lst) acc (loop (cdr lst) (append acc (fn (car lst)))))))
+
+(define path-list-separator ":")
+
+(define (split-path-list env)
+  (if env (string-split env path-list-separator) #f))
+
+(define (path-join . paths)
+  (if (null? paths) ""
+      (let loop ((paths (cdr paths)) (acc (car paths)))
+        (if (null? paths) acc
+            (loop (cdr paths) (string-append acc "/" (car paths)))))))
+
+;;
+
+(define default-pkg-config-path
+  '("/usr/lib/pkgconfig"
+    "/usr/share/pkgconfig"
+    "/usr/local/lib/pkgconfig"
+    "/usr/local/share/pkgconfig"))
+
+(define (get-full-pkg-config-path)
+  (append (let ((path (split-path-list
+                       (get-environment-variable "PKG_CONFIG_PATH"))))
+            (or path '()))
+          default-pkg-config-path))
+
+(define (list-all-pc-files)
+  (append-map (λ (dir) (map (λ (file) (path-join dir file))
+                            (directory-names dir)))
+              (filter file-exists? (get-full-pkg-config-path))))
+
+(define (parse-lines lines)
+  (define (split line pivot)
+    (cons (substring line 0 pivot)
+          (substring line (+ pivot 1) (string-length line))))
+  (let loop ((lines lines) (keys '()) (vars '()))
+    (if (null? lines)
+        (values keys vars)
+        (let ((line (string.trim (car lines) *whitespace* *whitespace*))
+              (lines (cdr lines))
+              (pivot #f))
+          (cond ((or (= 0 (string-length line))
+                     (char=? #\# (string-ref line 0)))
+                 (loop lines keys vars))
+                ((set! pivot (string.find line #\:))
+                 (loop lines (append keys (list (split line pivot))) vars))
+                ((set! pivot (string.find line #\=))
+                 (loop lines keys (append vars (list (split line pivot)))))
+                (else
+                 (error (string-append "huh: " line))))))))
+
+(define (dump-pc-file filename)
+  (newline)
+  (writeln filename)
+  (newline)
+  (receive (keys vars) (parse-lines (io.readlines (file filename)))
+    (for-each writeln keys)
+    (newline)
+    (for-each writeln vars)))
+
+(for-each dump-pc-file (list-all-pc-files))
