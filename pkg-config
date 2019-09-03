@@ -86,7 +86,7 @@
 
 (define (parse-lines read-line)
   (let loop ((keys '()) (vars '()))
-    (receive (type name value) (parse-line read-line)
+    (let-values (((type name value) (parse-line read-line)))
       (case type
         ((#f)  (values keys vars))
         ((key) (loop (append keys (list (cons name value))) vars))
@@ -130,8 +130,8 @@
                           (string-append acc (string (string-ref s i))))))))))
 
 (define (parse-pc-file filename)
-  (receive (keys vars)
-      (parse-lines (list-reader (io.readlines (file filename))))
+  (let-values (((keys vars)
+                (parse-lines (list-reader (io.readlines (file filename))))))
     (let* ((vars (map (λ (var) (cons (car var) (expand-vars (cdr var) vars)))
                       vars))
            (keys (map (λ (key) (cons (car key) (expand-vars (cdr key) vars)))
@@ -142,14 +142,14 @@
   (newline)
   (writeln filename)
   (newline)
-  (receive (keys vars) (parse-pc-file filename)
+  (let-values (((keys vars) (parse-pc-file filename)))
     (for-each writeln keys)
     (newline)
     (for-each writeln vars)))
 
 ;; (for-each dump-pc-file (list-all-pc-files))
 (for-each (λ (filename)
-            (receive (keys vars) (parse-pc-file filename)
+            (let-values (((keys vars) (parse-pc-file filename)))
               (displayln filename)
               (newline)
               (for-each (λ (key) (write-simple key) (newline))
