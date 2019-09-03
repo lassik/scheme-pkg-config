@@ -38,6 +38,13 @@
                             (directory-names dir)))
               (filter file-exists? (get-full-pkg-config-path))))
 
+(define (find-pc-file package-name)
+  (let loop ((dirs (get-full-pkg-config-path)))
+    (if (null? dirs) #f
+        (let ((dir (car dirs)) (dirs (cdr dirs)))
+          (let ((file (path-join dir (string-append package-name ".pc"))))
+            (if (file-exists? file) file (loop dirs)))))))
+
 (define (trim-whitespace string)
   (string.trim string *whitespace* *whitespace*))
 
@@ -138,7 +145,7 @@
                       keys)))
       (values keys vars))))
 
-(define (dump-pc-file filename)
+(define (dump-pc-file-1 filename)
   (newline)
   (writeln filename)
   (newline)
@@ -147,12 +154,27 @@
     (newline)
     (for-each writeln vars)))
 
-;; (for-each dump-pc-file (list-all-pc-files))
-(for-each (λ (filename)
-            (let-values (((keys vars) (parse-pc-file filename)))
-              (displayln filename)
-              (newline)
-              (for-each (λ (key) (write-simple key) (newline))
-                        keys)
-              (newline)))
-          (list-all-pc-files))
+(define (dump-pc-file-2 filename)
+  (let-values (((keys vars) (parse-pc-file filename)))
+    (displayln filename)
+    (for-each (λ (key) (write-simple key) (newline))
+              keys)
+    (newline)))
+
+(define (dump-pc-file-flags filename)
+  (let-values (((keys vars) (parse-pc-file filename)))
+    (displayln filename)
+    (displayln (cdr (or (assoc "Cflags" keys) (cons "" ""))))
+    (displayln (cdr (or (assoc "Libs" keys) (cons "" ""))))
+    (newline)))
+
+#;(for-each dump-pc-file-1 (list-all-pc-files))
+#;(for-each dump-pc-file-2 (list-all-pc-files))
+;;(for-each dump-pc-file-flags (list-all-pc-files))
+
+(for-each (λ (package-name)
+            (let ((pc-file (find-pc-file package-name)))
+              (if pc-file
+                  (dump-pc-file-flags pc-file)
+                  (displayln (string-append "not found: " package-name)))))
+          (cdr (command-line)))
